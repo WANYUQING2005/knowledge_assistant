@@ -1,14 +1,6 @@
-"""
-LLM 语义分块 + 标签选择工具。
-- 将长文本预切为窗口（默认 3000 字）逐段发送给 LLM，返回严格 JSON。
-- 每个分块长度 ≤ max_chunk_chars；标签从候选集中选 1-3 个。
-- 依赖：DEEPSEEK_API_KEY / DEEPSEEK_API_BASE
-- 标签来源：TAGS_PATH (JSON 文件) 或 TAG_SET_JSON（JSON 字符串）
-"""
 import os, json
 from typing import List, Dict
 
-from dataclasses_json.mm import schema
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
@@ -21,21 +13,35 @@ _DEF_WIN = int(os.getenv("LLM_CHUNK_WINDOW", "3000"))
 _SCHEMA = (
     "严格返回 JSON 数组，每个元素形如：{\n"
     "  \"chunk\": \"字符串，单个分块内容，长度不超过 MAX_LEN 字符，避免截断句子\",\n"
-    "  \"tags\": [\"从候选标签中选择的 1-3 个标签\"]\n"
+    "  \"tags\": [\"自行根据语义设置标签\"]\n"
     "}。不要输出注释、解释或其它非 JSON 内容。"
 )
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "你是专业的文本整理助手：将给定中文或英文长文本进行**语义分块**，并为每个分块选择最相关的 1-3 个标签。\n"
-     "要求：\n"
-     "- 分块应尽量保持语义完整，避免在句中硬切。\n"
-     "- 每块最大长度为 MAX_LEN 字符；若自然段很长，允许在标点处切分。\n"
-     "- 标签只能从‘候选标签列表’里选，且数量 1-3 个，不可自造新标签。\n"
-     "- 即使不确定也必须从候选列表中选出最接近的 1–3 个标签；\n"
-     f"- 输出格式：{schema}"),
+     "你是专业的文本整理助手：将给定中文或英文长文本进行**语义分块**，并为每个分块自动生成 1–3 个最相关的标签。\n"
+     "\n"
+     "具体要求：\n"
+     "1. 分块规则：\n"
+     "   - 分块应尽量保持语义完整，避免在句中硬切。\n"
+     "   - 如果自然段过长，可以在句号、分号、逗号等自然停顿处切分。\n"
+     "   - 每个分块的最大长度为 MAX_LEN 字符。\n"
+     "   - 同一分块内部的语义要相对单一、集中，不能混合多个无关主题。\n"
+     "\n"
+     "2. 标签生成：\n"
+     "   - 每个分块必须生成 1–3 个标签。\n"
+     "   - **请自行创建标签**，而不是从给定的候选标签中选择。\n"
+     "   - 标签需紧扣该分块的核心主题，避免过于宽泛或抽象。\n"
+     "   - 标签用简短词语（1–4 个字/词），不可用完整句子。\n"
+     "   - 分块内部语义应保持一致，确保该块整体内容能被所选标签统一概括。\n"
+     "   - 标签应覆盖不同层级：优先选择能代表**主题/话题**的词，如果有关键对象或动作，也可作为标签。\n"
+     "\n"
+     "3. 其他要求：\n"
+     "   - 分块与标签之间必须一一对应。\n"
+     "   - 即使内容模糊，也要尽量生成最接近的标签。\n"
+     "- 输出格式：{schema}"),
     ("human",
-     "候选标签：\n{tag_list}\n\nMAX_LEN={max_len}\n\n原始文本：\n{window_text}\n\n请直接给出 JSON 数组结果。")
+     "以下仅供参考的标签例子（你可以创建完全不同的标签）：\n{tag_list}\n\nMAX_LEN={max_len}\n\n原始文本：\n{window_text}\n\n请直接给出 JSON 数组结果。")
 ])
 
 
@@ -137,9 +143,9 @@ def llm_chunk_and_tag(text: str, tag_candidates: List[str], max_chunk_chars: int
                 chunk = chunk[:max_chunk_chars]
             if not isinstance(tags, list):
                 tags = []
-            tags = [t for t in tags if t in tag_candidates][:3]
-            if not tags and tag_candidates:
-                tags = tag_candidates[:1]
+            # 不再过滤标签，允许LLM自行生成的任何标签
+            if not tags:
+                tags = tag_candidates[:1] if tag_candidates else ["通用"]
 
             md = {"source": source, "title": title, "ord": ord_idx, "split": "llm", "tags": tags}
             results.append(Document(page_content=chunk, metadata=md))

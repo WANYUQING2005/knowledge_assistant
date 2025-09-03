@@ -22,7 +22,6 @@ from llm_chunker import llm_chunk_and_tag, load_tag_candidates
 
 load_dotenv()
 
-# 更稳的 DSN 构造（支持特殊字符密码）
 
 def build_engine():
     url_env = os.getenv("MYSQL_URL")
@@ -40,7 +39,7 @@ def build_engine():
 
 engine = build_engine()
 
-# ------------------------- 工具函数 -------------------------
+
 
 def sha256(text:str)->str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()

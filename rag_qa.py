@@ -8,6 +8,19 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 
 from embeddings_zhipu import ZhipuAIEmbeddingsLC
+from collections import deque
+import json
+
+HISTORY_MAX_TURNS = int(os.getenv("CHAT_HISTORY_TURNS", "6"))
+HISTORY = deque(maxlen=HISTORY_MAX_TURNS)   # 每项是 (user, assistant)
+
+def _history_text() -> str:
+    """把最近 N 轮对话压成文本，让模型有上下文感知"""
+    parts = []
+    for u, a in HISTORY:
+        parts.append(f"用户: {u}\n助手: {a}")
+    return "\n\n".join(parts) if parts else "（无）"
+
 
 load_dotenv()
 
@@ -56,48 +69,190 @@ def _load_vs():
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "- 你是一个知识库助手，优先根据给你提供的知识库知识作为主要参考内容；"
-     "- **最重要的，**你必须严格按照知识库的内容来回答，即使你认为知识库内容有误，也要按照知识库输出；"
-     "- 如果知识库中没有足够信息，你可以根据自己的信息回答问题，但必须要注明“该回答来自非知识库知识”；"
-     "- 如果你也无法回答，请说明“无法从知识库和非知识库中找到相关信息”；"
-     "- **同样重要的是，**如果知识库知识中没有相关信息，可以简短说明没有找到相关信息，不要编造答案；"
-     "- 回答时请用直接的口吻，不要出现第三人称口吻，不要出现“根据知识库知识”等内容；"
-     "- 如果知识库的内容和非知识库的内容冲突，必须优先使用知识库的内容回答；"
-     "- 注意不要出现片段的引用编号；"
-     "- 你的回答应该直接简洁明了，不要过多赘述。"),
-    ("human", "问题：{question}\n\n可用片段：\n{context}")
+     "- 你是一个知识库助手。你的首要任务是**综合**我提供的片段，进行归纳、对齐与结构化表达，给出比片段本身更完整、更连贯的答案；\n"
+     "- **最重要**：回答必须以知识库为主要依据；若片段之间信息不一致，**以知识库片段为准**做出一致化处理；\n"
+     "- **严禁**逐段罗列或简单拼接片段；需要用你自己的语言进行概括、串联、举例和步骤化说明（在不改变片段事实的前提下）；\n"
+     "- 当知识库信息**不充分**（存在缺口、背景缺失、需要通用常识/定义/推理才能读懂）时，允许**补充说明**，但必须在**另起一行**以“该回答来自非知识库知识：”开头，写出补充内容；\n"
+     "- 如果你既无法从知识库也无法从常识中可靠补全，请明确说明：“无法从知识库和非知识库中找到相关信息”。\n"
+     "- 回答口吻应**直接**，不要使用第三人称叙述，也不要出现“根据知识库”“片段编号”等表述；\n"
+     "- 不要输出片段引用编号或显式引用标记；\n"
+     "- 先综合后表达：先识别问题要点→从片段中抽取关键信息→消解矛盾→补齐逻辑链→给出条理清晰的结论与步骤/要点列表；\n"
+     "- 对结果进行润色，使语言自然、结构清楚、术语一致，但不得改动知识库中的事实性内容。"),
+    ("human",
+     "（以下是最近对话，供参考）\n{history}\n\n"
+     "问题：{question}\n\n可用片段：\n{context}")
 ])
+
+
 
 def answer_with_sources(query: str, k: int = 6) -> Dict[str, Any]:
     vs = _load_vs()
-    # 取更“稳”的接口：返回相似度分数（faiss距离，越小越相似）
+    docs_scores = vs.similarity_search_with_score(query, k=k)  # faiss距离，越小越相似
+    docs = [d for d, _ in docs_scores]
+    context = _format_docs_for_llm(docs)
+
+    llm = _build_llm()
+    messages = PROMPT.format_messages(question=query, context=context, history=_history_text())
+    resp = llm.invoke(messages)
+    answer = resp.content if hasattr(resp, "content") else str(resp)
+
+    sources = _format_sources(docs_scores)
+    HISTORY.append((query, answer))  # 进历史
+    return {"answer": answer, "sources": sources}
+
+def answer_with_sources_stream(query: str, k: int = 6) -> Dict[str, Any]:
+    """
+    终端边打字边出结果；结束后返回完整 answer + sources。
+    """
+    vs = _load_vs()
     docs_scores = vs.similarity_search_with_score(query, k=k)
     docs = [d for d, _ in docs_scores]
     context = _format_docs_for_llm(docs)
 
     llm = _build_llm()
-    messages = PROMPT.format_messages(question=query, context=context)
-    resp = llm.invoke(messages)  # ChatMessage
-    answer = resp.content if hasattr(resp, "content") else str(resp)
+    messages = PROMPT.format_messages(question=query, context=context, history=_history_text())
 
+    chunks = []
+    for chunk in llm.stream(messages):   # << 流式关键
+        token = getattr(chunk, "content", None)
+        if token:
+            chunks.append(token)
+            print(token, end="", flush=True)  # 实时输出到控制台
+    print()  # 换行
+
+    answer = "".join(chunks).strip()
+    sources = _format_sources(docs_scores)
+    HISTORY.append((query, answer))
+    return {"answer": answer, "sources": sources}
+
+def _chunk_name(md: dict) -> str:
+    return f"{md.get('title')}#p{md.get('page','-')}#{md.get('ord','-')}"
+
+
+def search_hits_by_threshold(query: str, threshold: float = 1.0, k_cap: int = 200):
+    """
+    返回所有 score<threshold 的片段（分数越小越相似），并按分数升序排序。
+    k_cap 用来限制一次检索最大候选数，避免把整个库都拉出来。
+    """
+    vs = _load_vs()
+    total = getattr(vs, "index", None)
+    total = getattr(total, "ntotal", k_cap) or k_cap
+    k = min(k_cap, total)
+
+    docs_scores = vs.similarity_search_with_score(query, k=k)
+    hits = [(d, s) for d, s in docs_scores if s < threshold]
+    hits.sort(key=lambda x: x[1])  # 分数小在前
+    return hits
+
+
+def list_hit_names(query: str, threshold: float = 1.0, k_cap: int = 200):
+    hits = search_hits_by_threshold(query, threshold=threshold, k_cap=k_cap)
+    names = []
+    for d, s in hits:
+        md = d.metadata or {}
+        names.append({
+            "name": _chunk_name(md),
+            "score": float(s)
+        })
+    return names
+
+# --- 可选：带阈值回答 + 来源（不固定 K） ---
+def answer_with_threshold(query: str, threshold: float = 1.0, k_cap: int = 200):
+    hits = search_hits_by_threshold(query, threshold=threshold, k_cap=k_cap)
+    if not hits:
+        # 没有命中就退化为最相近的几条，避免回答完全没上下文
+        vs = _load_vs()
+        docs_scores = vs.similarity_search_with_score(query, k=3)
+    else:
+        docs_scores = hits
+
+    docs = [d for d, _ in docs_scores]
+    context = _format_docs_for_llm(docs)
+    llm = _build_llm()
+    messages = PROMPT.format_messages(question=query, context=context)
+    resp = llm.invoke(messages)
+    answer = resp.content if hasattr(resp, "content") else str(resp)
     sources = _format_sources(docs_scores)
     return {"answer": answer, "sources": sources}
 
+def answer_with_threshold_stream(query: str, threshold: float = 1.0, k_cap: int = 200):
+    hits = search_hits_by_threshold(query, threshold=threshold, k_cap=k_cap)
+    if not hits:
+        vs = _load_vs()
+        docs_scores = vs.similarity_search_with_score(query, k=3)
+    else:
+        docs_scores = hits
+
+    docs = [d for d, _ in docs_scores]
+    context = _format_docs_for_llm(docs)
+    llm = _build_llm()
+
+    messages = PROMPT.format_messages(
+        question=query, context=context, history=_history_text()
+    )
+
+    chunks = []
+    for chunk in llm.stream(messages):           # ← 流式输出关键
+        token = getattr(chunk, "content", None)
+        if token:
+            chunks.append(token)
+            print(token, end="", flush=True)
+    print()
+
+    answer = "".join(chunks).strip()
+    sources = _format_sources(docs_scores)
+    HISTORY.append((query, answer))
+    return {"answer": answer, "sources": sources}
+
 if __name__ == "__main__":
-    print("请输入你的问题（Ctrl+C 退出）：")
-    try:
-        while True:
-            q = input("> ").strip()
-            if not q:
-                continue
-            result = answer_with_sources(q, k=3)
-            print("\n=== 回答 ===")
-            print(result["answer"])
-            print("\n=== 命中片段（按相似度升序）===")
-            for i, s in enumerate(result["sources"], 1):
-                tag = f"{s.get('title')}#p{s.get('page','-')}#{s.get('ord','-')}"
-                print(f"[{i}] {tag}  score={s['score']:.4f}")
-                print(f"    {s['snippet']}\n")
-            print("============\n")
-    except KeyboardInterrupt:
-        print("\nBye.")
+
+    print("请输入你的问题：")
+    while True:
+        q = input("> ").strip()
+        if not q:
+            continue
+        if q.lower() == 'exit':
+            print("程序已退出")
+            break
+        try:
+            query = q
+            th = 1.0  # 默认阈值
+            k_cap = 500  # 可按需调整
+
+            # 先用阈值检索判断是否有命中
+            names = list_hit_names(query, threshold=th, k_cap=k_cap)
+            streaming_used = True
+
+            if names:
+                # 有命中：优先用“阈值 + 历史”的流式版本；没有则用非流式兜底
+                if 'answer_with_threshold_stream' in globals():
+                    streaming_used = True
+                    result = answer_with_threshold_stream(query, threshold=th, k_cap=k_cap)
+                else:
+                    result = answer_with_threshold(query, threshold=th, k_cap=k_cap)
+            else:
+                # 无命中：退化为最相近的3条；同样优先用流式
+                if 'answer_with_sources_stream' in globals():
+                    streaming_used = True
+                    result = answer_with_sources_stream(query, k=3)
+                else:
+                    result = answer_with_sources(query, k=3)
+
+            # 如果是非流式，统一在这里打印答案；流式已在函数内实时输出，无需重复打印
+            if not streaming_used and result.get("answer"):
+                print("\n=== 回答 ===")
+                print(result["answer"])
+
+            # 打印来源（分数越小越相似）
+            if result.get("sources"):
+                print("\n=== 来源（按相似度升序）===")
+                for i, s in enumerate(result["sources"], 1):
+                    tag = f"{s.get('title')}#p{s.get('page', '-')}#{s.get('ord', '-')}"
+                    print(f"[{i}] {tag}  score={s['score']:.4f}")
+                    print(f"    {s['snippet']}\n")
+                print("============\n")
+
+        except Exception as e:
+            print(f"[ERROR] {e}")
+
+
