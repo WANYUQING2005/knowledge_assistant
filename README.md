@@ -12,7 +12,7 @@
 ---
 
 ## 技术栈
-- **前端**：React + Vite + Tailwind（或 Ant Design）
+- **前端**：React + Vite 
 - **后端**：Django + DRF + LangChain
 - **向量库**：FAISS（本地）
 - **模型**：
