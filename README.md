@@ -33,9 +33,13 @@ project-root
 ├─ index/faiss/            # 向量索引（运行后生成）
 ├─ scripts/                # 开发辅助脚本
 └─ .env                    # 环境变量
+```
 
 ## 环境准备
 coming soon
 
 ## demo 运行
 coming soon
+
+## 里程碑计划
+<img width="1526" height="576" alt="图片" src="https://github.com/user-attachments/assets/890d3e17-87b3-4ddf-8e0b-ad3c1a736a6a" />
