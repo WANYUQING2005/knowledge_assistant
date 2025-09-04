@@ -78,15 +78,19 @@ class UserUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = UserUpdateSerializer(data=request.data, user=request.user)
+        user_id = request.data.get('userid')
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'status': 'error', 'message': '用户不存在'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserUpdateSerializer(user, data=request.data)
         if not serializer.is_valid():
             return Response({
                 'status': 'error',
-                'message': '无效的请求数据',
+                'message': '无效的请求数据1',
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        user = request.user
         try:
             profile = user.profile
         except Profile.DoesNotExist:
@@ -96,10 +100,10 @@ class UserUpdateView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
         # 直接处理已验证的序列化器数据
-                    # 更新用户名
-            if 'username' in serializer.validated_data:
-                user.username = serializer.validated_data['username']
-                user.save()
+        # 更新用户名
+        if 'username' in serializer.validated_data:
+            user.username = serializer.validated_data['username']
+            user.save()
 
             # 更新头像
             if 'avatar' in serializer.validated_data:
@@ -130,7 +134,7 @@ class UserUpdateView(APIView):
 
         return Response({
             'status': 'error',
-            'message': '无效的请求数据',
+            'message': '无效的请求数据2',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
 
@@ -150,12 +154,11 @@ class UserDeleteView(APIView):
             
             # 1. 删除所有关联的知识库及其内容
             # 查询该用户拥有或创建的所有知识库
-            knowledge_bases = KnowledgeBase.objects.filter(
-                models.Q(owner_user_id=str(user.id)) | models.Q(creater_id=str(user.id))
-            )
-            for kb in knowledge_bases:
+            knowledge_bases = KnowledgeBase.objects.filter(owner_user_id=user.id)
+            if knowledge_bases.exists():
+                for kb in knowledge_bases:
                 # 删除知识库下的所有文档
-                documents = Document.objects.filter(knowledge_base_id=kb.id)
+                 documents = Document.objects.filter(knowledge_base_id=kb.id)
                 for doc in documents:
                     # 删除文档下的所有Markdown片段
                     Markdown.objects.filter(document_id=doc.id).delete()
@@ -188,43 +191,78 @@ from rest_framework.permissions import IsAuthenticated
 class PasswordUpdateView(APIView):
     #authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        # 将请求数据中的'userid'重命名为'user_id'以匹配序列化器
-        request.data['user_id'] = request.data.get('userid')
-        # 确保user_id始终存在，使用当前认证用户的ID
-        data = request.data.copy()
-        data['user_id'] = request.user.id  # 传递整数类型ID以匹配序列化器要求
-        serializer = PasswordUpdateSerializer(data=data, user=request.user)
-        if serializer.is_valid():
-            user_id = serializer.validated_data['user_id']
-            old_password = serializer.validated_data['old_password']  # 获取旧密码
-            new_password = serializer.validated_data['new_password']
-    
-            user = User.objects.get(id=user_id)
-            # 旧密码已通过序列化器验证，无需重复检查
-
-            # 更新密码
-            user.set_password(new_password)
-            user.save()
-
-            # 更新密码后使旧token失效并生成新token
-            Token.objects.filter(user=user).delete()
-            new_token = Token.objects.create(user=user)
-
+        user_id = request.data.get('userid')
+        if not user_id:
             return Response({
+                'status': 'error', 
+                'message': '用户ID不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 转换user_id为整数
+        try:
+            user_id = int(user_id)
+        except ValueError:
+            return Response({
+                'status': 'error', 
+                'message': '用户ID必须为整数'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({
+                'status': 'error', 
+                'message': '用户不存在'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        # 获取请求中的密码信息
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        # 验证密码是否提供
+        if not old_password or not new_password:
+            return Response({
+                'status': 'error', 
+                'message': '旧密码和新密码均不能为空'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证旧密码是否正确
+        if not user.check_password(old_password):
+            return Response({
+                'status': 'error', 
+                'message': '旧密码不正确'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 验证新密码
+        serializer = PasswordUpdateSerializer(data={
+            'old_password': old_password,
+            'new_password': new_password,
+            'confirm_password': new_password
+        }, user=user)
+        if not serializer.is_valid():
+            return Response({
+                'status': 'error',
+                'message': '新密码验证失败',
+                'errors': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # 更新密码
+        user.set_password(serializer.validated_data['new_password'])
+        user.save()
+
+        # 更新密码后使旧token失效并生成新token
+        Token.objects.filter(user=user).delete()
+        new_token = Token.objects.create(user=user)
+
+        return Response({
                 'status': 'success',
                 'message': '密码更新成功',
                 'new_token': new_token.key
-            }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK)
 
-        return Response({
-            'status': 'error',
-            'message': '密码更新失败',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
+        
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
     

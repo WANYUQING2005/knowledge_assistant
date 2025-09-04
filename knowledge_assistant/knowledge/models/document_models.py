@@ -26,22 +26,23 @@ class Document(models.Model):
             return None
 
     # 重写save方法设置默认creater_id
-     # 重写save方法设置默认creater_id
     def save(self, *args, **kwargs):
         # 仅当creater_id为None时才使用默认值，保留请求传入的空字符串
         if self.creater_id is None:
             self.creater_id = self.get_default_creater_id()
+        
+        # 新增：首次保存且文件类型为markdown时触发分段
+        is_new = self.pk is None
         super().save(*args, **kwargs)
-
+        
+        # 新增：文档创建时自动分段（仅对markdown文件）
+        if is_new and self.file_type.lower() == 'markdown':
+            self.split_into_markdowns()
     def split_into_markdowns(self):
-        # 获取文档内容（需要您实现_get_document_content方法）
+        # 获取文档内容（已实现_get_document_content方法）
         content = self._get_document_content()
-        
-        # 新增：将文件内容转换为Markdown格式
-        content = self.convert_to_markdown(content)
         # 调用分段策略（当前为300字符固定分段，未来可替换为AI分段）
-        chunks = self._split_content_strategy(content)
-        
+        chunks = self._split_content_strategy(content)  
         # 清除现有关联的markdown记录
         Markdown.objects.filter(document_id=self.id).delete()
         
@@ -64,6 +65,25 @@ class Document(models.Model):
         
         return markdowns
     
+    # 新增：实现文档内容读取方法
+    def _get_document_content(self):
+        """从storage_uri读取文档内容"""
+        import os
+        from django.conf import settings
+        
+        # 检查文件路径是否存在
+        full_path = os.path.join(settings.MEDIA_ROOT, self.storage_uri)
+        if not os.path.exists(full_path):
+            print(f"文档文件不存在: {full_path}")
+            return ""
+            
+        try:
+            with open(full_path, 'r', encoding='utf-8') as file:
+                return file.read()
+        except Exception as e:
+            print(f"读取文档内容失败: {str(e)}")
+            return ""
+    
     def _split_content_strategy(self, content):
         """分段策略接口：当前为300字符固定分段，未来可替换为AI智能分段
         Args:
@@ -75,16 +95,4 @@ class Document(models.Model):
         chunk_size = 300
         return [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
     
-    def convert_to_markdown(self, content):
-        # 根据文件类型调用不同转换逻辑的预留接口
-        # 当前版本直接返回原内容
-        file_type = self.file_type.lower()
-        
-        # 未来可扩展的转换逻辑框架
-        # if file_type == 'pdf':
-        #     return self._convert_pdf_to_markdown(content)
-        # elif file_type in ['cpp', 'java', 'py']:
-        #     return self._convert_code_to_markdown(content)
-        # ... 其他文件类型转换逻辑
-        
-        return content
+    

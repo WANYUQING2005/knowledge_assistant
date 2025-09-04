@@ -5,7 +5,7 @@ from .models.markdown_models import Markdown
 class KnowledgeBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = KnowledgeBase
-        fields = ('id', 'name', 'description', 'embed_model','create_at','update_at')
+        fields = ('id', 'name', 'description', 'embed_model','create_at')
         read_only_fields = ('id', 'owner_user_id', 'create_at')
 
     def validate_name(self, value):
@@ -39,7 +39,7 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Document
-        fields = ['knowledge_base_id', 'title', 'file_type', 'chunk_count', 'create_at', 'content']
+        fields = ['knowledge_base_id', 'title', 'file_type', 'chunk_count', 'create_at', 'content', 'creater_id']
 
     def get_content(self, obj):
         # 合并所有Markdown块内容作为完整文件正文
@@ -48,5 +48,11 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
 class MarkdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = Markdown
-        fields = ['title', 'content', 'number', 'word_count', 'document_id', 'creater_id', 'create_at']
+        fields = ['title', 'content', 'number', 'word_count', 'document_id', 'creater_id', 'create_at','id']
         read_only_fields = fields
+
+
+class DocumentListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Document
+        fields = ('id', 'title', 'file_type', 'creater_id', 'create_at')
