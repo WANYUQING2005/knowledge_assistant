@@ -74,15 +74,17 @@ class DocumentUploadView(APIView):
         # 4. 构建并保存Document对象
         # 确定创建者ID：优先使用请求传入值，否则使用知识库所有者ID
         creater_id = request.data.get('creater_id', knowledge_base.owner_user_id)
+        # 只存储相对路径，不包含MEDIA_ROOT
+        relative_path = os.path.relpath(storage_path, settings.MEDIA_ROOT)
         document = Document(
             knowledge_base_id=knowledge_base_id,
             title=request.data.get('title', os.path.splitext(file.name)[0]),  # 从文件名提取标题
             file_type=file.content_type.split('/')[-1],  # 提取MIME类型后缀
-            storage_uri=storage_path.replace('\\', '/'),  # 统一使用Unix风格路径
+            storage_uri=relative_path.replace('\\', '/'),  # 统一使用Unix风格路径
             chunk_count=0,  # 初始化为0，后续可通过异步任务更新
             creater_id=creater_id
         )
-        document.split_into_markdowns()
+        # 移除这里的split_into_markdowns调用，因为save方法内部已经会调用
         document.save()
 
         # 5. 返回创建结果

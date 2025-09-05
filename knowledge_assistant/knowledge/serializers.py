@@ -48,7 +48,7 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
 class MarkdownSerializer(serializers.ModelSerializer):
     class Meta:
         model = Markdown
-        fields = ['title', 'content', 'number', 'word_count', 'document_id', 'creater_id', 'create_at','id']
+        fields = ['title', 'content', 'number', 'word_count', 'document_id', 'creater_id', 'create_at','id','vector_id']
         read_only_fields = fields
 
 

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'account',  # 新增account app
     'knowledge',  # 新增knowledge app
+    'chat',  # 新增chat app
      # 第三方应用
     'rest_framework',
     'rest_framework.authtoken',
@@ -100,7 +101,8 @@ DATABASES = {
             'use_unicode': True,
         },
         'TEST': {
-            'NAME': str(BASE_DIR / 'test_db.sqlite3'),  # 测试专用数据库文件路径
+            'NAME': 'test_knowledge_assistant',  # 测试专用数据库名
+            # 保持与主数据库相同的引擎和连接设置
         }
     }
 }

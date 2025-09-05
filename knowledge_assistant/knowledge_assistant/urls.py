@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('account.urls')),  # 挂载account app路由
     path('knowledge/', include('knowledge.urls')),
+    path('chat/', include('chat.urls')),  # 挂载chat app路由
 ]

@@ -9,6 +9,7 @@ class Markdown(models.Model):
     number = models.IntegerField()
     word_count = models.IntegerField()
     document_id = models.CharField(max_length=36)
+    kb_id = models.CharField(max_length=36, default="0")  # 添加kb_id字段并设置默认值
     creater_id = models.CharField(max_length=36)  # 保持该字段
     create_at = models.DateTimeField(auto_now_add=True)
 
