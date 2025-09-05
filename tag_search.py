@@ -10,6 +10,7 @@ from typing import List, Dict, Any, Set
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
+from langchain_openai import ChatOpenAI
 
 load_dotenv()
 
@@ -61,11 +62,12 @@ class TagBasedSearch:
 
     def _build_llm(self):
         """构建DeepSeek LLM实例"""
-        return DeepSeekLLM(
-            api_key=os.getenv("DEEPSEEK_API_KEY"),
-            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-            temperature=0.1,
-        )
+        return ChatOpenAI(
+        api_key=os.getenv("API_KEY"),
+        base_url=os.getenv("API_BASE", "https://api.deepseek.com"),
+        model=os.getenv("MODEL", "deepseek-chat"),
+        temperature=0.1,
+    )
 
     def get_all_tags(self) -> Set[str]:
         """从数据库中提取所有唯一标签"""
@@ -242,7 +244,7 @@ class TagBasedSearch:
         }
 
 
-def main():
+def tag_search():
     """主函数 - 交互式标签搜索"""
     searcher = TagBasedSearch()
 
@@ -306,4 +308,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    tag_search()
+

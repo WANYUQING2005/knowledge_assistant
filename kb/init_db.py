@@ -53,7 +53,7 @@ def build_engine():
     )
     return create_engine(url_obj, pool_pre_ping=True)
 
-if __name__ == "__main__":
+def init_mysql():
     eng = build_engine()
     with eng.begin() as conn:
         for stmt in filter(None, DDL.split(";")):
@@ -61,3 +61,5 @@ if __name__ == "__main__":
             if s:
                 conn.execute(text(s))
     print("[OK] 数据库结构已重建")
+
+

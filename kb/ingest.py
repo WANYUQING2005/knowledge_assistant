@@ -16,9 +16,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-from embeddings_zhipu import ZhipuAIEmbeddingsLC
-from loaders import load_any
-from llm_chunker import llm_chunk_and_tag, load_tag_candidates
+from kb.embeddings_zhipu import ZhipuAIEmbeddingsLC
+from kb.loaders import load_any
+from kb.llm_chunker import llm_chunk_and_tag, load_tag_candidates
 
 load_dotenv()
 
@@ -118,9 +118,9 @@ def insert_chunk_if_new(doc_id, ord_idx, content, metadata):
 
 # ------------------------- 主流程 -------------------------
 
-def main():
+def create_mysql_faiss():
     files = []
-    for pat in ["data/*.txt","data/*.md","data/*.pdf","data/*.docx"]:
+    for pat in ["../data/*.txt","data/*.md","data/*.pdf","data/*.docx"]:
         files.extend(glob.glob(pat))
     if not files:
         print("data/ 目录为空，请放入 txt/md/pdf/docx 文件")
@@ -140,13 +140,13 @@ def main():
 
     embeddings = ZhipuAIEmbeddingsLC()
 
-    index_dir = "index/faiss"
+    index_dir = "../index/faiss"
     if os.path.isdir(index_dir):
         vs = FAISS.load_local(index_dir, embeddings, allow_dangerous_deserialization=True)
         print("[INFO] 已加载现有 FAISS 索引，增量更新中...")
     else:
         vs = None
-        os.makedirs("index", exist_ok=True)
+        os.makedirs("../index", exist_ok=True)
 
     new_docs_for_vs = []
 
@@ -221,5 +221,5 @@ def main():
     print(f"[OK] 索引已保存：{index_dir}，本次新增向量 {len(new_docs_for_vs)}")
 
 if __name__ == "__main__":
-    main()
+    create_mysql_faiss()
 

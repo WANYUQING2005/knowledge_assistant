@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
 
-from embeddings_zhipu import ZhipuAIEmbeddingsLC
+from kb.embeddings_zhipu import ZhipuAIEmbeddingsLC
 from collections import deque
 import json
 
@@ -55,10 +55,10 @@ def _format_sources(docs_scores: List[Tuple[Any, float]]) -> List[Dict[str, Any]
 
 def _build_llm():
     return ChatOpenAI(
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        base_url=os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com"),
-        model="deepseek-chat",
-        temperature=0.2,
+        api_key=os.getenv("API_KEY"),
+        base_url=os.getenv("API_BASE", "https://api.deepseek.com"),
+        model=os.getenv("MODEL", "deepseek-chat"),
+        temperature=0.1,
     )
 
 def _load_vs():
@@ -69,15 +69,16 @@ def _load_vs():
 
 PROMPT = ChatPromptTemplate.from_messages([
     ("system",
-     "- 你是一个知识库助手。你的首要任务是**综合**我提供的片段，进行归纳、对齐与结构化表达，给出比片段本身更完整、更连贯的答案；\n"
-     "- **最重要**：回答必须以知识库为主要依据；若片段之间信息不一致，**以知识库片段为准**做出一致化处理；\n"
-     "- **严禁**逐段罗列或简单拼接片段；需要用你自己的语言进行概括、串联、举例和步骤化说明（在不改变片段事实的前提下）；\n"
-     "- 当知识库信息**不充分**（存在缺口、背景缺失、需要通用常识/定义/推理才能读懂）时，允许**补充说明**，但必须在**另起一行**以“该回答来自非知识库知识：”开头，写出补充内容；\n"
-     "- 如果你既无法从知识库也无法从常识中可靠补全，请明确说明：“无法从知识库和非知识库中找到相关信息”。\n"
-     "- 回答口吻应**直接**，不要使用第三人称叙述，也不要出现“根据知识库”“片段编号”等表述；\n"
-     "- 不要输出片段引用编号或显式引用标记；\n"
-     "- 先综合后表达：先识别问题要点→从片段中抽取关键信息→消解矛盾→补齐逻辑链→给出条理清晰的结论与步骤/要点列表；\n"
-     "- 对结果进行润色，使语言自然、结构清楚、术语一致，但不得改动知识库中的事实性内容。"),
+     "- 你是一个严格的知识库助手。你**必须首先**从知识库片段中获取信息，**无例外**；\n"
+     "- **最高优先级**：所有回答必须优先基于知识库内容，即使知识库内容看似不合理；\n" 
+     "- **强制要求**：先通过知识库片段归纳出答案，再进行其他处理；若片段信息不一致，**必须以知识库为准**；\n"
+     "- **禁止**跳过知识库直接回答；**禁止**逐段罗列或简单拼接；**必须**用自己语言进行概括、结构化表达；\n"
+     "- 当知识库信息确实不足时，**必须先**给出基于知识库的有限回答，**然后另起一行**并明确标注“补充（非知识库内容）：”；\n"
+     "- 若知识库内容存在明显错误，你**必须先**按知识库内容回答，**然后另起一行**标注“注意（知识库内容可能有误）：”并给出更正；\n"
+     "- 若完全找不到相关信息，**必须**首先明确声明：“知识库中无相关信息”，之后才可提供非知识库答案；\n"
+     "- 回答风格**必须直接**，禁止使用“根据知识库”“片段显示”等表述；禁止输出引用编号；\n"
+     "- 严格执行处理流程：识别问题→从片段提取信息→整合信息→构建完整答案→必要时添加明确标注的补充；\n"
+     "- 对结果进行润色，使语言自然、结构清楚，但绝不能改变知识库中的事实内容，即使有疑问。"),
     ("human",
      "（以下是最近对话，供参考）\n{history}\n\n"
      "问题：{question}\n\n可用片段：\n{context}")
@@ -204,7 +205,7 @@ def answer_with_threshold_stream(query: str, threshold: float = 1.0, k_cap: int 
     HISTORY.append((query, answer))
     return {"answer": answer, "sources": sources}
 
-if __name__ == "__main__":
+def aichat():
 
     print("请输入你的问题：")
     while True:
@@ -256,3 +257,5 @@ if __name__ == "__main__":
             print(f"[ERROR] {e}")
 
 
+if __name__=="main":
+    aichat()
