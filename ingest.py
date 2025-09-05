@@ -24,6 +24,8 @@ load_dotenv()
 
 
 def build_engine():
+
+
     url_env = os.getenv("MYSQL_URL")
     if url_env:
         return create_engine(url_env, pool_pre_ping=True)

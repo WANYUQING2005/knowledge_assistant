@@ -1,156 +1,309 @@
-
-
+# -*- coding: utf-8 -*-
+"""
+基于标签的智能搜索功能
+通过大模型匹配用户搜索词与数据库标签，返回相关chunks
+"""
 import os
 import json
-import argparse
-import csv
-from typing import List, Dict, Any, Set, Tuple
+import requests
+from typing import List, Dict, Any, Set
 from dotenv import load_dotenv
-
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 
-# ------------------------- 连接配置 -------------------------
+load_dotenv()
 
-def build_engine():
-    """
-    逻辑与 ingest.py 中一致：优先读取 MYSQL_URL；否则拼接单项配置。
-    """
-    url_env = os.getenv("MYSQL_URL")
-    if url_env:
-        return create_engine(url_env, pool_pre_ping=True)
+class DeepSeekLLM:
+    """DeepSeek API 封装"""
+    def __init__(self, api_key: str, model: str = "deepseek-chat", temperature: float = 0.1):
+        self.api_key = api_key
+        self.model = model
+        self.temperature = temperature
+        self.api_url = "https://api.deepseek.com/v1/chat/completions"
 
-    url_obj = URL.create(
-        "mysql+pymysql",
-        username=os.getenv("MYSQL_USER","rag"),
-        password=os.getenv("MYSQL_PASSWORD","yourpassword"),
-        host=os.getenv("MYSQL_HOST","127.0.0.1"),
-        port=int(os.getenv("MYSQL_PORT","3306")),
-        database=os.getenv("MYSQL_DB","rag_demo"),
-    )
-    return create_engine(url_obj, pool_pre_ping=True)
+    def _call(self, prompt: str) -> str:
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": self.temperature,
+            "max_tokens": 512
+        }
+        response = requests.post(self.api_url, headers=headers, json=payload, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        return data["choices"][0]["message"]["content"]
 
-# ------------------------- 实用函数 -------------------------
+class TagBasedSearch:
+    """基于标签的智能搜索类"""
 
-def _norm_tag(t: str) -> str:
-    return (t or "").strip().replace("　"," ").replace("\u3000"," ").lower()
+    def __init__(self):
+        self.engine = self._build_engine()
+        self.llm = self._build_llm()
 
-def _parse_chunk_tags(s: str) -> List[str]:
-    """
-    将表中的 chunk_tags 文本解析为 list[str]；
-    容错：若不是合法 JSON，则尝试用逗号/空格切分。
-    """
-    if not s:
-        return []
-    try:
-        data = json.loads(s)
-        if isinstance(data, list):
-            return [_norm_tag(x) for x in data if isinstance(x, str)]
-    except Exception:
-        pass
-    # 回退：粗略分割
-    parts = [p.strip() for p in s.replace("[","").replace("]","").replace('"','').split(",")]
-    return [_norm_tag(p) for p in parts if p]
+    def _build_engine(self):
+        """构建数据库连接"""
+        url_env = os.getenv("MYSQL_URL")
+        if url_env:
+            return create_engine(url_env, pool_pre_ping=True)
+        url_obj = URL.create(
+            "mysql+pymysql",
+            username=os.getenv("MYSQL_USER", "rag"),
+            password=os.getenv("MYSQL_PASSWORD", "yourpassword"),
+            host=os.getenv("MYSQL_HOST", "127.0.0.1"),
+            port=int(os.getenv("MYSQL_PORT", "3306")),
+            database=os.getenv("MYSQL_DB", "rag_demo"),
+        )
+        return create_engine(url_obj, pool_pre_ping=True)
 
-def _match_tags(candidate: List[str], query: List[str], mode: str) -> bool:
-    """
-    mode='any'：候选标签与查询标签有交集即可；
-    mode='all'：候选标签至少包含所有查询标签；
-    """
-    cand = set(candidate)
-    qset = set(query)
-    if mode == "all":
-        return qset.issubset(cand)
-    return len(cand & qset) > 0
+    def _build_llm(self):
+        """构建DeepSeek LLM实例"""
+        return DeepSeekLLM(
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            temperature=0.1,
+        )
 
-# ------------------------- 查询核心 -------------------------
+    def get_all_tags(self) -> Set[str]:
+        """从数据库中提取所有唯一标签"""
+        all_tags = set()
 
-def find_chunks_by_tags(tags: List[str], mode: str = "any", limit: int = 2000) -> List[Dict[str, Any]]:
-    """
-    返回匹配到的分块记录列表：
-      id, doc_id, ord, split, snippet, tags(list), title, source(path)
-    """
-    engine = build_engine()
-    q = text("""
-        SELECT c.id, c.doc_id, c.ord, c.split, c.content, c.chunk_tags,
-               d.title, d.path AS source
-        FROM chunks c
-        JOIN documents d ON c.doc_id = d.id
-        ORDER BY c.id DESC
+        query = text("""
+            SELECT metadata FROM chunks 
+            WHERE metadata IS NOT NULL 
+            AND JSON_EXTRACT(metadata, '$.tags') IS NOT NULL
         """)
-    out: List[Dict[str, Any]] = []
-    with engine.begin() as conn:
-        for row in conn.execute(q):
-            row = dict(row._mapping)
-            ctags = _parse_chunk_tags(row.get("chunk_tags"))
-            if not ctags:
-                continue
-            if _match_tags(ctags, tags, mode):
-                content = (row.get("content") or "").strip()
-                snippet = content if len(content) <= 240 else content[:240] + "…"
-                out.append({
-                    "id": row["id"],
-                    "doc_id": row["doc_id"],
-                    "ord": row["ord"],
-                    "split": row["split"],
-                    "snippet": snippet,
-                    "tags": ctags,
-                    "title": row.get("title"),
-                    "source": row.get("source"),
-                })
-                if len(out) >= limit:
-                    break
-    return out
 
-def distinct_sources(results: List[Dict[str, Any]]) -> List[Tuple[str, str]]:
-    """
-    提取去重后的 (title, source) 列表，按标题排序。
-    """
-    s: Set[Tuple[str,str]] = set()
-    for r in results:
-        s.add((r.get("title") or "", r.get("source") or ""))
-    return sorted(list(s), key=lambda x: (x[0], x[1]))
+        with self.engine.begin() as conn:
+            result = conn.execute(query)
+            for row in result:
+                try:
+                    metadata = json.loads(row.metadata)
+                    tags = metadata.get('tags', [])
+                    if isinstance(tags, list):
+                        all_tags.update(tags)
+                except (json.JSONDecodeError, TypeError):
+                    continue
 
-# ------------------------- CLI -------------------------
+        return all_tags
+
+    def match_tags_with_llm(self, search_query: str, all_tags: Set[str]) -> List[str]:
+        """使用大模型匹配搜索词与标签"""
+        if not all_tags:
+            return []
+
+        tags_list = list(all_tags)
+        tags_str = "\n".join(f"- {tag}" for tag in tags_list)
+
+        prompt = f"""
+你是一个精确的标签匹配专家。请根据用户的搜索查询，从给定的标签列表中严格筛选最相关的标签。
+
+用户搜索查询: "{search_query}"
+
+可用标签列表:
+{tags_str}
+
+请严格按照以下标准进行匹配:
+1. 仅选择与搜索查询高度相关的标签，忽略模糊相关的标签
+2. 优先考虑直接匹配的关键词和核心概念
+3. 考虑同义词和专业术语的等价关系
+4. 按相关度从高到低排序，只返回真正相关的标签
+5. 宁缺毋滥，如果没有高度相关的标签，可以少返回甚至不返回
+
+请直接返回匹配的标签列表，每行一个标签，不要添加任何其他解释:
+"""
+
+        try:
+            response = self.llm._call(prompt)
+            # 解析返回的标签
+            matched_tags = []
+            for line in response.strip().split('\n'):
+                tag = line.strip().lstrip('-').strip()
+                if tag and tag in all_tags:
+                    matched_tags.append(tag)
+
+            return matched_tags[:10]  # 最多返回10个标签
+
+        except Exception as e:
+            print(f"LLM标签匹配失败: {e}")
+            # 回退到简单的字符串匹配
+            return self._fallback_tag_matching(search_query, all_tags)
+
+    def _fallback_tag_matching(self, search_query: str, all_tags: Set[str]) -> List[str]:
+        """回退的标签匹配方法（基于字符串相似度）"""
+        search_lower = search_query.lower()
+        matched_tags = []
+
+        for tag in all_tags:
+            tag_lower = tag.lower()
+            if search_lower in tag_lower or tag_lower in search_lower:
+                matched_tags.append(tag)
+
+        return matched_tags[:10]
+
+    def get_chunks_by_tags(self, tags: List[str]) -> List[Dict[str, Any]]:
+        """根据标签获取相关的chunks"""
+        if not tags:
+            return []
+
+        # 构建查询条件
+        tag_conditions = []
+        params = {}
+
+        for i, tag in enumerate(tags):
+            param_name = f"tag_{i}"
+            tag_conditions.append(f"JSON_CONTAINS(metadata, JSON_QUOTE(:{param_name}), '$.tags')")
+            params[param_name] = tag
+
+        # 使用OR连接所有标签条件
+        where_clause = " OR ".join(tag_conditions)
+
+        query = text(f"""
+            SELECT 
+                c.content_hash,
+                c.content,
+                c.metadata,
+                c.ord,
+                c.doc_id,
+                d.title,
+                d.path as source
+            FROM chunks c
+            JOIN documents d ON c.doc_id = d.id
+            WHERE {where_clause}
+            ORDER BY c.doc_id, c.ord
+        """)
+
+        chunks = []
+        with self.engine.begin() as conn:
+            result = conn.execute(query, params)
+            for row in result:
+                try:
+                    metadata = json.loads(row.metadata) if row.metadata else {}
+                except (json.JSONDecodeError, TypeError):
+                    metadata = {}
+
+                chunk_data = {
+                    "content_hash": row.content_hash,
+                    "content": row.content,
+                    "metadata": metadata,
+                    "ord": row.ord,
+                    "doc_id": row.doc_id,
+                    "title": row.title,
+                    "source": row.source,
+                    "tags": metadata.get("tags", [])
+                }
+                chunks.append(chunk_data)
+
+        return chunks
+
+    def search_by_tags(self, search_query: str) -> Dict[str, Any]:
+        """完整的基于标签的搜索流程"""
+        print(f"🔍 开始基于标签的搜索: {search_query}")
+
+        # 1. 获取所有标签
+        print("📋 正在从数据库获取所有标签...")
+        all_tags = self.get_all_tags()
+        print(f"📊 找到 {len(all_tags)} 个唯一标签")
+
+        if not all_tags:
+            return {
+                "query": search_query,
+                "matched_tags": [],
+                "chunks": [],
+                "message": "数据库中没有找到任何标签"
+            }
+
+        # 2. 使用大模型匹配标签
+        print("🤖 正在使用AI匹配相关标签...")
+        matched_tags = self.match_tags_with_llm(search_query, all_tags)
+        print(f"✅ 匹配到 {len(matched_tags)} 个相关标签: {matched_tags}")
+
+        if not matched_tags:
+            return {
+                "query": search_query,
+                "matched_tags": [],
+                "chunks": [],
+                "message": "未找到与搜索词相关的标签"
+            }
+
+        # 3. 根据匹配的标签获取chunks
+        print("📚 正在获取相关的知识块...")
+        chunks = self.get_chunks_by_tags(matched_tags)
+        print(f"📖 找到 {len(chunks)} 个相关的知识块")
+
+        return {
+            "query": search_query,
+            "matched_tags": matched_tags,
+            "chunks": chunks,
+            "message": f"成功找到 {len(chunks)} 个相关知识块"
+        }
+
 
 def main():
-    load_dotenv()
-    ap = argparse.ArgumentParser(description="按标签查询分块（chunks）")
-    ap.add_argument("--tags", nargs="+", required=True, help="要查询的标签（支持多个）")
-    ap.add_argument("--mode", choices=["any","all"], default="any", help="any=包含任意一个标签；all=同时包含全部标签")
-    ap.add_argument("--limit", type=int, default=2000, help="最多返回多少条分块")
-    ap.add_argument("--list-docs", action="store_true", help="仅输出匹配到的来源文件列表（去重）")
-    ap.add_argument("--csv", type=str, default="", help="将结果导出到 CSV 文件路径")
-    args = ap.parse_args()
+    """主函数 - 交互式标签搜索"""
+    searcher = TagBasedSearch()
 
+    print("="*60)
+    print("🏷️  基于标签的智能搜索系统")
+    print("="*60)
+    print("输入搜索词，系统将通过AI匹配相关标签并返回知识块")
+    print("输入 'exit' 退出程序")
+    print()
 
+    while True:
+        try:
+            query = input("🔍 请输入搜索词: ").strip()
 
-    qtags = [_norm_tag(t) for t in args.tags if _norm_tag(t)]
-    if not qtags:
-        print("无有效标签。")
-        return
+            if not query:
+                continue
 
-    results = find_chunks_by_tags(qtags, mode=args.mode, limit=args.limit)
+            if query.lower() == 'exit':
+                print("👋 再见！")
+                break
 
-    if args.list_docs:
-        print(f"匹配标签 {qtags} 的来源文件（共 {len(distinct_sources(results))} 个）：\n")
-        for title, source in distinct_sources(results):
-            print(f"- {title}  ({source})")
-        return
+            # 执行搜索
+            result = searcher.search_by_tags(query)
 
-    print(f"匹配标签 {qtags} 的分块（共 {len(results)} 条）：\n")
-    for i, r in enumerate(results, 1):
-        print(f"[{i}] {r['title']}  ({r['source']})  ord={r['ord']} split={r['split']}  tags={r['tags']}")
-        print(f"    {r['snippet']}\n")
+            print("\n" + "="*50)
+            print("🎯 搜索结果")
+            print("="*50)
 
-    if args.csv:
-        path = args.csv
-        with open(path, "w", newline="", encoding="utf-8") as f:
-            w = csv.writer(f)
-            w.writerow(["id","doc_id","ord","split","title","source","tags","snippet"])
-            for r in results:
-                w.writerow([r["id"], r["doc_id"], r["ord"], r["split"], r["title"], r["source"], " ".join(r["tags"]), r["snippet"]])
-        print(f"\n已导出 CSV：{path}")
+            # 显示匹配的标签
+            if result["matched_tags"]:
+                print(f"📌 匹配的标签 ({len(result['matched_tags'])}个):")
+                for i, tag in enumerate(result["matched_tags"], 1):
+                    print(f"   {i}. {tag}")
+                print()
+
+            # 显示找到的chunks
+            if result["chunks"]:
+                print(f"📚 相关知识块 ({len(result['chunks'])}个):")
+                print()
+
+                for i, chunk in enumerate(result["chunks"][:5], 1):  # 最多显示前5个
+                    print(f"--- 知识块 {i} ---")
+                    print(f"📄 文档: {chunk['title']}")
+                    print(f"🏷️  标签: {', '.join(chunk['tags'])}")
+                    print(f"📝 内容: {chunk['content'][:200]}...")
+                    print()
+
+                if len(result["chunks"]) > 5:
+                    print(f"... 还有 {len(result['chunks']) - 5} 个知识块")
+            else:
+                print("❌ 未找到相关的知识块")
+
+            print("💡", result["message"])
+            print("\n" + "="*50 + "\n")
+
+        except KeyboardInterrupt:
+            print("\n👋 再见！")
+            break
+        except Exception as e:
+            print(f"❌ 搜索过程中出错: {e}")
+
 
 if __name__ == "__main__":
     main()
