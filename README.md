@@ -1,9 +1,5 @@
 # 📚 知识助手项目 (Knowledge Assistant)
 
-<div align="center">
-  <img src="schedule/picture/里程碑.png" alt="项目标志" width="200">
-  <p><strong>基于 Django + DRF 的智能知识管理与问答系统</strong></p>
-</div>
 
 ## 🌟 项目介绍
 
