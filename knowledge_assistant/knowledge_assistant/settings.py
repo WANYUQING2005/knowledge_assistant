@@ -91,9 +91,9 @@ WSGI_APPLICATION = 'knowledge_assistant.wsgi.application'
 DATABASES = {
      'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'knowledge_assistant',  # 替换为你的数据库名
+        'NAME': 'kb',  # 替换为你的数据库名
         'USER': 'root',  # 替换为MySQL用户名
-        'PASSWORD': 'wyq20050725',  # 替换为MySQL密码
+        'PASSWORD': '000524',  # 替换为MySQL密码
         'HOST': 'localhost',  # 数据库主机，本地数据库保持默认
         'PORT': '3306',  # MySQL默认端口
         'OPTIONS': {

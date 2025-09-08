@@ -1,12 +1,6 @@
-# ingest.py（支持 LLM 分块 + 标签 + Q&A/字符回退）
 # -*- coding: utf-8 -*-
 """
-在原版基础上，增加：
-1) **LLM 分块并打标签**：优先使用大模型对整文进行语义分块；每块从预设标签集中选择 1-3 个标签写入 metadata.tags。
-2) **最大长度限制**：通过环境变量 MAX_CHUNK_CHARS 控制每个分块最大字符数（默认 400）。
-3) **回退策略**：若 LLM 分块失败或返回为空，依次回退到 Q&A 切分（qa）→ 字符切分（char）。
-4) 其余逻辑（MySQL 去重入库、FAISS 增量更新）保持不变。
-
+ingest.py（LLM 分块 + 标签 + Q&A/字符回退 + MySQL入库 + FAISS增量 + faiss_id 映射）
 """
 import os, glob, json, hashlib, re
 from dotenv import load_dotenv
@@ -16,47 +10,38 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
-from .embeddings_zhipu import ZhipuAIEmbeddingsLC
-from .loaders import load_any
-from .llm_chunker import llm_chunk_and_tag, load_tag_candidates
+from rag_demo.embeddings_zhipu import ZhipuAIEmbeddingsLC
+from rag_demo.loaders import load_any
+from rag_demo.llm_chunker import llm_chunk_and_tag, load_tag_candidates
 
 load_dotenv()
-
-
 
 def build_engine():
     url_env = os.getenv("MYSQL_URL")
     if url_env:
         return create_engine(url_env, pool_pre_ping=True)
     url_obj = URL.create(
-    "mysql+pymysql",
-    username=os.getenv("MYSQL_USER", "root"),  # 使用root用户
-    password=os.getenv("MYSQL_PASSWORD", "wyq20050725"),  # 更新为您的密码
-    host=os.getenv("MYSQL_HOST", "localhost"),  # 使用localhost主机
-    port=int(os.getenv("MYSQL_PORT", "3306")),  # 保持默认端口
-    database=os.getenv("MYSQL_DB", "knowledge_assistant"),  # 更新为您的数据库名
-)
+        "mysql+pymysql",
+        username=os.getenv("MYSQL_USER", "root"),
+        password=os.getenv("MYSQL_PASSWORD", "wyq20050725"),
+        host=os.getenv("MYSQL_HOST", "localhost"),
+        port=int(os.getenv("MYSQL_PORT", "3306")),
+        database=os.getenv("MYSQL_DB", "knowledge_assistant"),
+    )
     return create_engine(url_obj, pool_pre_ping=True)
 
 engine = build_engine()
 
-
-
-
-def sha256(text:str)->str:
+def sha256(text: str) -> str:
+    import hashlib
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
-# Q&A 正则
 _QA_REGEX = re.compile(
     r"(?:^|\n+)\s*(?:Q|Question|问|问题)\s*[:：\]]?\s*(.+?)\s*"
     r"(?:\n+|\r+)\s*(?:A|Answer|答|答案)\s*[:：\]]?\s*(.+?)"
     r"(?=(?:\n+\s*(?:Q|Question|问|问题)\s*[:：\]]?)|\Z)",
     re.S | re.I
 )
-
-
-
-
 
 def qa_splitter(text: str, source: str, title: str):
     docs = []
@@ -67,37 +52,42 @@ def qa_splitter(text: str, source: str, title: str):
         if not q or not a:
             continue
         content = f"Q: {q}\nA: {a}"
-        metadata = {"source": source, "title": title, "ord": i, "split": "qa"}
+        metadata = {"source": source, "title": title, "ord": i, "split": "qa", "tags": []}
         docs.append(Document(page_content=content, metadata=metadata))
         i += 1
     return docs
 
 # ------------------------- DB 写入 -------------------------
 
-def upsert_document(path,title,source_type="file",tags=None):
+def upsert_document(path, title, source_type="file", tags=None):
     with engine.begin() as conn:
-        r = conn.execute(text("SELECT id FROM knowledge_ragdocuments WHERE path=:p"),{"p":path}).fetchone()
+        r = conn.execute(
+            text("SELECT id FROM knowledge_ragdocuments WHERE path=:p"),
+            {"p": path}
+        ).fetchone()
         if r:
-            conn.execute(text("UPDATE knowledge_ragdocuments SET source_type=:st, tags=:tg WHERE id=:id"),
-                         {"st":source_type, "tg": json.dumps(tags) if tags else None, "id": r[0]})
+            conn.execute(
+                text("UPDATE knowledge_ragdocuments SET source_type=:st, tags=:tg WHERE id=:id"),
+                {"st": source_type, "tg": json.dumps(tags) if tags else None, "id": r[0]}
+            )
             return r[0]
         res = conn.execute(
             text("""INSERT INTO knowledge_ragdocuments(path,title,source_type,tags)
                     VALUES(:p,:t,:st,:tg)"""),
-            {"p":path,"t":title,"st":source_type,"tg": json.dumps(tags) if tags else None}
+            {"p": path, "t": title, "st": source_type, "tg": json.dumps(tags) if tags else None}
         )
         return res.lastrowid
 
-
-
 def insert_chunk_if_new(doc_id, ord_idx, content, metadata, faiss_id=None):
-
     h = sha256(content.strip())
     split = (metadata or {}).get("split", "char")
     chunk_tags = (metadata or {}).get("tags", [])
 
     with engine.begin() as conn:
-        r = conn.execute(text("SELECT id FROM knowledge_ragchunks WHERE content_hash=:h"), {"h": h}).fetchone()
+        r = conn.execute(
+            text("SELECT id FROM knowledge_ragchunks WHERE content_hash=:h"),
+            {"h": h}
+        ).fetchone()
         if r:
             return None
         conn.execute(
@@ -118,29 +108,24 @@ def insert_chunk_if_new(doc_id, ord_idx, content, metadata, faiss_id=None):
         )
     return h
 
-
 # ------------------------- 主流程 -------------------------
 
 def main():
     files = []
-    for pat in ["data/*.txt","data/*.md","data/*.pdf","data/*.docx"]:
+    for pat in ["data/*.txt", "data/*.md", "data/*.pdf", "data/*.docx"]:
         files.extend(glob.glob(pat))
     if not files:
         print("data/ 目录为空，请放入 txt/md/pdf/docx 文件")
         return
 
-    # 参数：最大分块长度
     max_len = int(os.getenv("MAX_CHUNK_CHARS", "400"))
 
-    # 回退用字符切分器
     char_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=max_len, chunk_overlap=max(0, max_len//2),
-        separators=["\n\n","\n","。","！","？","，"," ", ""]
+        chunk_size=max_len, chunk_overlap=max(0, max_len // 2),
+        separators=["\n\n", "\n", "。", "！", "？", "，", " ", ""]
     )
 
-    # 预设标签集合
     tag_candidates = load_tag_candidates()
-
     embeddings = ZhipuAIEmbeddingsLC()
 
     index_dir = "index/faiss"
@@ -151,7 +136,12 @@ def main():
         vs = None
         os.makedirs("index", exist_ok=True)
 
+    # 关键修正：在开始处理前就得到起始 faiss_id
+    start_index = vs.index.ntotal if vs else 0
+    next_faiss_id = start_index
+
     new_docs_for_vs = []
+    faiss_ids = []
 
     for path in files:
         raw_docs = load_any(path)
@@ -160,14 +150,16 @@ def main():
             continue
 
         title = os.path.basename(path)
-        source_type = raw_docs[0].metadata.get("source_type","file")
+        source_type = raw_docs[0].metadata.get("source_type", "file")
         doc_id = upsert_document(path, title, source_type=source_type, tags=None)
 
         merged_text = "\n\n".join([d.page_content for d in raw_docs])
 
         # 1) 优先：LLM 分块 + 标签
-        llm_docs = llm_chunk_and_tag(merged_text, tag_candidates, max_chunk_chars=max_len,
-                                      source=path, title=title)
+        llm_docs = llm_chunk_and_tag(
+            merged_text, tag_candidates, max_chunk_chars=max_len,
+            source=path, title=title
+        )
         if llm_docs:
             chunks_docs = llm_docs
             mode = "llm"
@@ -200,35 +192,33 @@ def main():
             doc.metadata.setdefault("split", mode)
             doc.metadata.setdefault("tags", doc.metadata.get("tags", []))
 
-            # 兜底：长度裁剪
             if len(doc.page_content) > max_len:
                 doc.page_content = doc.page_content[:max_len]
 
-            # 为每个新文档记录FAISS ID
-            h = insert_chunk_if_new(doc_id, i, doc.page_content, doc.metadata, faiss_id=start_index + len(new_docs_for_vs))
+            # 为每个“新插入的” chunk 分配并写入 faiss_id
+            h = insert_chunk_if_new(doc_id, i, doc.page_content, doc.metadata, faiss_id=next_faiss_id)
             if h:
                 new_docs_for_vs.append(doc)
+                faiss_ids.append(next_faiss_id)
+                next_faiss_id += 1
                 cnt_new += 1
 
         print(f"[OK] {title}：入库片段 {len(chunks_docs)}，其中新增 {cnt_new}")
 
     if not new_docs_for_vs:
         print("[INFO] 无新增切片，索引不变。")
-        return
-
-    # 记录新增文档的FAISS ID
-    start_index = vs.index.ntotal if vs else 0
+        return []
 
     if vs is None:
         vs = FAISS.from_documents(new_docs_for_vs, embeddings)
     else:
         vs.add_documents(new_docs_for_vs)
 
-    # 计算新增文档的ID范围
-    faiss_ids = list(range(start_index, start_index + len(new_docs_for_vs)))
-    print(f"[INFO] 新增向量ID: {faiss_ids}")
-
     vs.save_local(index_dir)
+    print(f"[INFO] 新增向量ID范围：[{start_index}, {next_faiss_id - 1}]")
     print(f"[OK] 索引已保存：{index_dir}，本次新增向量 {len(new_docs_for_vs)}")
 
     return faiss_ids
+
+if __name__ == "__main__":
+    main()

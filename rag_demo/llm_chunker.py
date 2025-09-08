@@ -49,9 +49,9 @@ PROMPT = ChatPromptTemplate.from_messages([
 
 def _build_llm():
     return ChatOpenAI(
-        api_key=os.getenv("DEEPSEEK_API_KEY"),
-        base_url=os.getenv("DEEPSEEK_API_BASE", "https://api.deepseek.com"),
-        model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+        api_key=os.getenv("API_KEY"),
+        base_url=os.getenv("API_BASE", "https://api.deepseek.com"),
+        model=os.getenv("MODEL", "deepseek-chat"),
         temperature=0.1,
     )
 
