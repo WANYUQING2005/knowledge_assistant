@@ -1,0 +1,60 @@
+Q：什么是 LangChain？
+A：LangChain 是一个用于开发由语言模型驱动的应用程序的框架。它简化了将大型语言模型（LLMs）与其他数据源和计算工具结合起来的过程，从而构建出更强大、更具上下文感知的应用。
+
+Q：LangChain 的主要组件有哪些？
+A：LangChain 的核心组件包括：Models（模型）、Prompts（提示词）、Chains（链）、Retrieval Augmented Generation (RAG)（检索增强生成）、Agents（智能体）、Memory（记忆）。
+
+Q：LangChain 的 Chains 和 Agents 有什么区别？
+A：Chains 是一系列预定义的、固定的步骤，执行流程是线性的。Agents 更加动态和灵活，能根据任务自主决定下一步应该执行什么操作，比如调用哪个工具，调用多少次。
+
+Q：什么是 RAG（检索增强生成）？它有什么用？
+A：RAG 是一种通过从外部知识库中检索相关信息，然后将这些信息作为上下文输入给语言模型来生成回答的技术。它让语言模型回答其训练数据之外的特定领域问题，减少模型“幻觉”，使答案更具时效性和准确性。
+
+Q：什么是 LangChain 中的 Embeddings（嵌入）？
+A：嵌入是将文本（或其他数据）转换成固定维度的数值向量的过程。这些向量捕捉了文本的语义信息。在 LangChain 中，嵌入模型常用于将文档分割成块，并将这些块转换成向量，以便在向量数据库中进行存储和检索。
+
+Q：如何使用 LangChain 加载文档？
+A：LangChain 的 DocumentLoader 模块支持加载多种格式的文档，如 PDF、TXT、HTML、CSV 等。加载后，文档被表示为 Document 对象，其中包含文本内容和元数据。
+
+Q：什么是 Vector Store（向量存储）？为什么要用它？
+A：向量存储是一种专门用于高效存储和检索向量数据的数据库。在 LangChain 的 RAG 应用中，它用于存储文档嵌入向量。用户提出问题时，先将问题转换为向量，然后在向量存储中快速查找语义上最相似的文档块。
+
+Q：LangChain 如何处理大型文档？
+A：LangChain 提供了 TextSplitter（文本分割器）来处理大型文档。它可以将文档分割成更小的、可管理的块。这对于向量存储和语言模型的上下文窗口限制都非常重要。
+
+Q：如何在 LangChain 中实现一个简单的问答系统？
+A：一个简单的 LangChain 问答系统通常包括：加载文档、分割文档、创建嵌入、存储向量、创建 RAG 链、提问并生成回答。
+
+Q：什么是 LangChain 的 Runnable 接口？
+A：Runnable 是 LangChain 表达式语言（LCEL）中的一个核心抽象。它定义了可以被调用的组件（如模型、提示词、链），使其能够以标准化的方式进行组合，支持同步、异步调用，并提供流式传输能力。
+
+Q：LangChain Agents 如何使用工具（Tools）？
+A：Agents 通过语言模型来决定调用哪个工具来完成任务。工具可以是任何外部功能，比如 Google 搜索、Python 解释器、数据库查询工具等。Agent 在运行时会解析语言模型的输出，然后执行相应的工具函数。
+
+Q：LangChain 的 Memory（记忆）有什么用？
+A：记忆功能让 LangChain 的应用能够在多个对话回合中保持上下文。这对于聊天机器人至关重要，可以让模型记住之前说过的话，从而提供更连贯、更个性化的交互。
+
+Q：LangChain 的 Retrievers（检索器）是什么？
+A：检索器是 LangChain 中专门用于从外部数据源（如向量数据库）中检索文档的组件。常见的检索器包括 VectorStoreRetriever，它通过向量相似度搜索来获取文档。
+
+Q：如何评估一个 LangChain 应用的性能？
+A：评估 LangChain 应用通常需要考虑相关性、忠实度、准确性和流畅性。
+
+Q：LangChain 提供的 LangSmith 是什么？
+A：LangSmith 是一个用于调试、测试、评估和监控 LangChain 应用的平台。它可以帮助开发者可视化链的执行过程，追踪输入和输出，方便发现问题并优化应用性能。
+
+Q：LangChain 表达式语言（LCEL）有什么优势？
+A：LCEL 是一种声明式语言，使得链的构建更加简单、灵活和可组合。优势包括可组合性、流式传输、异步支持和可追踪性。
+
+Q：LangChain 支持哪些语言？
+A：LangChain 主要提供 Python 和 JavaScript/TypeScript 两个官方版本，这两个版本功能对等，满足不同开发者的需求。
+
+Q：LangChain 和 OpenAI API 有什么关系？
+A：LangChain 是一个框架，而 OpenAI API 是一个具体的语言模型服务。LangChain 并没有自己的语言模型，而是通过集成各种模型提供商的 API 来工作，简化了调用这些 API 并将它们组合成复杂应用的过程。
+
+Q：如何在本地运行一个 LangChain 项目？
+A：需要安装 LangChain 库，配置 API 密钥，编写代码并运行。
+
+Q：LangChain 适合哪些应用场景？
+A：LangChain 适合构建智能问答机器人、代码解释器和自动代码生成器、文档摘要和分析工具、与外部工具集成的智能助手、聊天机器人等。
+
