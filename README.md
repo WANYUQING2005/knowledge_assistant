@@ -1,3 +1,5 @@
+# 写在前面：项目进度和项目文档在schedule文件夹中
+
 # 📚 知识助手项目 (Knowledge Assistant)
 
 
