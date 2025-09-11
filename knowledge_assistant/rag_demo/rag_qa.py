@@ -258,10 +258,23 @@ def rag_answer_with_threshold_stream(query: str, kb_id: str = "0", threshold: fl
     vector_store = _load_vector_store()
 
     hits = search_hits_by_threshold(vector_store, query, threshold=threshold, k_cap=k_cap, kb_id=kb_id)
-    docs_scores = hits if hits else _search_relevant_docs(vector_store, query, k=3, kb_id=kb_id)
+
+    # 检查是否存在匹配阈值的文档
+    has_threshold_hits = len(hits) > 0
+
+    # 获取文档，如果没有匹配阈值的文档，则使用空文档列表，不再进行普通相似度搜索
+    docs_scores = hits if has_threshold_hits else []
 
     docs = [d for d, _ in docs_scores]
-    context = _format_docs_for_llm(docs)
+
+    # 如果没有匹配阈值的文档，添加说明
+    if not has_threshold_hits:
+        context = "知识库中没有匹配的片段。\n\n"
+    else:
+        context = ""
+
+    # 添加文档内容到上下文
+    context += _format_docs_for_llm(docs)
 
     llm = _build_language_model()
     messages = PROMPT.format_messages(question=query, context=context, history=_history_text())
@@ -289,7 +302,7 @@ if __name__ == "__main__":
             if not user_query:
                 continue
 
-            kb_input = input("请输入知识库ID（默认为0，表示不筛选）：").strip()
+            kb_input = input("请输入知识库ID（默认为0，表示全筛选）：").strip()
             kb_id = kb_input if kb_input else "0"
 
             th = float(os.getenv("RETRIEVE_THRESHOLD", "1.0"))
