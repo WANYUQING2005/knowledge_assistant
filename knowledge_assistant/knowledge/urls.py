@@ -16,5 +16,5 @@ urlpatterns = [
     path('markdown/detail-by-document/', MarkdownByDocumentView.as_view(), name='markdown-by-document'),
     path('documents/list/', DocumentListView.as_view(), name='document-list-by-kb'),
     path('documents/detail/', DocumentDetailView.as_view(), name='document-detail'),
-    path('tag/search/', TagSearchView.as_view(), name='tag-search'),  # 新增标签搜索路由
+
 ]
