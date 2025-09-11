@@ -4,7 +4,6 @@ from .views import CreateKnowledgeBaseView, DocumentUploadView
 from .views import DeleteKnowledgeBaseView, DeleteDocumentView
 from .views import KnowledgeBaseListView, DocumentListView
 from .views import MarkdownDetailView, MarkdownByDocumentView, DocumentDetailView
-from .views import TagSearchView  # 导入新添加的标签搜索视图
 
 urlpatterns = [
     path('create/', CreateKnowledgeBaseView.as_view(), name='create-knowledge-base'),
