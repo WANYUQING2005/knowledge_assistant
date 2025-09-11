@@ -39,3 +39,15 @@
 
 ### 9月5日
 ![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-5.png)
+
+### 9月8日
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-8.png)
+
+### 9月9日
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-9.png)
+
+### 9月10日
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-10.png)
+
+### 9月11日
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-11.png)
