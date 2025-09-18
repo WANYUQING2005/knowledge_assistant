@@ -11,43 +11,44 @@
 ## 每日进度 📝
 
 ### 8月25日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/8-25.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/8-25.png)
+
 
 ### 8月26日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/8-26.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/8-26.png)
 
 ### 8月27日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/8-27.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/8-27.png)
 
 ### 8月28日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/8-28.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/8-28.png)
 
 ### 8月29日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/8-29.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/8-29.png)
 
 ### 9月1日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-1.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-1.png)
 
 ### 9月2日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-2.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-2.png)
 
 ### 9月3日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-3.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-3.png)
 
 ### 9月4日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-4.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-4.png)
 
 ### 9月5日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-5.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-5.png)
 
 ### 9月8日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-8.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-8.png)
 
 ### 9月9日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-9.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-9.png)
 
 ### 9月10日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-10.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-10.png)
 
 ### 9月11日
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/9-11.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/9-11.png)
