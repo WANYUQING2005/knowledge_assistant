@@ -1,0 +1,113 @@
+/* DetailTable.module.css */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 14px;
+  table-layout: fixed;
+  background: #ffffff;
+}
+
+.container {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.item {
+  padding: 12px 14px;
+  white-space: nowrap;
+  border: none;
+  text-align: center;
+  color: #374151;
+}
+
+.thead {
+  position: sticky;
+  top: 0;
+  background: #f7f9ff;
+  z-index: 3;
+  font-weight: 600;
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.left {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background-color: #f7f9ff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  text-align: left;
+}
+
+.right {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background-color: #f7f9ff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.row td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.row:hover td,
+.row:hover .left,
+.row:hover .right {
+  background-color: #f9fafb;
+}
+
+.op {
+  color: #134cfe;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.op:hover {
+  background: #eef2ff;
+}
+
+.name {
+  cursor: pointer;
+  color: #111827;
+  font-weight: 500;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.statusFinished {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.statusFailed {
+  color: #7f1d1d;
+  background: #fee2e2;
+}
+
+.statusPending {
+  color: #92400e;
+  background: #ffedd5;
+}

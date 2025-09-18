@@ -1,0 +1,63 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+  width: 35vw;
+  align-items: center;
+  justify-content: space-around;
+  background-color: white;
+  border-radius: 5px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+.title {
+  text-align: center;
+}
+.titlehead {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #1e293b;
+}
+.titleparagraph {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+}
+.inputText,.inputPassword{
+    padding: 10px 12px;
+    border-radius: 7px;
+    border: 2.5px solid #e2e8f0;
+    margin-bottom: 1rem;
+    transition: border 0.2s, box-shadow 0.2s;
+}
+.inputText:focus,.inputPassword:focus{
+      border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14,165,233,0.2);
+  outline: none;
+}
+.checkbox{
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+      margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #334155;
+  cursor: pointer;
+}
+.button{
+     padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #0ea5e9;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}

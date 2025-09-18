@@ -1,0 +1,203 @@
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-size: 14px;
+  table-layout: fixed;
+  background: #fff;
+}
+
+.container {
+  overflow: auto;
+  max-height: 60vh;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.item {
+  padding: 12px 14px;
+  white-space: nowrap;
+  border: none;
+  text-align: center;
+  color: #374151;
+}
+
+.headerRow th {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.thead {
+  position: sticky;
+  top: 0;
+  background: #f7f7f7;
+  z-index: 3;
+  font-weight: 600;
+  color: #111827;
+}
+
+.left {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background-color: #f7f7f7;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  text-align: left;
+}
+
+.right {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background-color: #f7f7f7;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+}
+
+.row td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.row:hover td,
+.row:hover .left,
+.row:hover .right {
+  background-color: #f9fafb;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.op {
+  color: #134cfe;
+  background: transparent;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.op:hover {
+  background: #eef2ff;
+}
+
+.menu {
+  position: absolute;
+  right: 12px;
+  top: 36px;
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.menuItem {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.menuItem:hover {
+  background: #f3f4f6;
+}
+
+.name {
+  cursor: pointer;
+  color: #111827;
+  font-weight: 500;
+}
+
+.name:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  text-align: center;
+  padding: 48px 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+.menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background-color: #f9fafb;
+}
+.actionContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.menuPortal {
+  position: relative;
+  z-index: 1000;
+}
+
+.menu {
+  position: fixed;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  min-width: 80px;
+  transform: translateX(-50%);
+}
+
+.menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.menuOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: none;
+}
+
+.menuOpen .menuOverlay {
+  display: block;
+}

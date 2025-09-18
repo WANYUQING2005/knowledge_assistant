@@ -1,0 +1,69 @@
+/* src/components/Modal/Modal.module.css */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+}
+
+.dialog {
+  width: 640px;
+  max-width: calc(100vw - 32px);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.header {
+  position: relative;
+  padding: 16px 48px 8px;
+  text-align: center;
+}
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+.close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.body {
+  padding: 16px 20px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #eee;
+}
+.ghost {
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+}
+.primary {
+  padding: 8px 12px;
+  border: 0;
+  background: #111;
+  color: #fff;
+  border-radius: 8px;
+}

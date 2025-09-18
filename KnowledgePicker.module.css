@@ -1,0 +1,106 @@
+/* KnowledgePicker.module.css */
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 10px;
+
+  width: 100%;
+  max-width: 420px;     /* 收窄宽度 */
+  min-width: 260px;     /* 防止过小 */
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.count { font-size: 12px; color: #64748b; }
+
+.controls {
+  display: grid;
+  grid-template-columns: 1fr 160px; /* 右侧数据库选择收窄 */
+  gap: 8px;
+}
+
+.search, .select {
+  height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  outline: none;
+  color: #111827;
+}
+.search:focus, .select:focus {
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+  border-color: #93c5fd;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spacer { flex: 1; }
+
+.ghost {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.ghost:hover { background: #f9fafb; }
+
+.list {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+  background: #ffffff;
+  max-height: 50vh;      /* 控制高度，避免撑满 */
+}
+
+.item {
+  display: flex;
+  gap: 10px;
+  align-items: start;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.item:hover { background: #f9fafb; }
+
+.meta { display: grid; gap: 2px; min-width: 0; }
+.name {
+  font-weight: 600; color: #111827;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sub { font-size: 12px; color: #6b7280; }
+
+.empty { text-align: center; color: #9ca3af; padding: 16px 0; font-size: 14px; }
+
+.actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+.primary {
+  background: #111827; color: #ffffff;
+  border: none; border-radius: 10px;
+  padding: 8px 14px; cursor: pointer;
+  box-shadow: 0 6px 16px rgba(2, 6, 23, 0.12);
+}
+.primary:hover { background: #0b1220; }
+
+@media (max-width: 960px) {
+  .card { max-width: 360px; }
+  .controls { grid-template-columns: 1fr 140px; }
+}
