@@ -6,7 +6,7 @@
 
 ## 里程碑计划 🏆
 
-![](https://github.com/WANYUQING2005/knowledge_assistant/blob/wzh_Django/schedule/picture/%E9%87%8C%E7%A8%8B%E7%A2%91.png)
+![](https://github.com/WANYUQING2005/knowledge_assistant/blob/django2/%E9%A1%B9%E7%9B%AE%E8%BF%9B%E5%BA%A6%E5%8F%8A%E6%96%87%E6%A1%A3/picture/%E9%87%8C%E7%A8%8B%E7%A2%91.png)
 
 ## 每日进度 📝
 
