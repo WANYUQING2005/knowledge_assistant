@@ -1,3 +1,4 @@
+# 《个人知识库助手》用户使用手册
 <html xmlns:v="urn:schemas-microsoft-com:vml"
 xmlns:o="urn:schemas-microsoft-com:office:office"
 xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -12,12 +13,7 @@ xmlns="http://www.w3.org/TR/REC-html40">
 <link rel=File-List href="08《个人知识库助手网页端》用户使用手册.files/filelist.xml">
 <link rel=Edit-Time-Data href="08《个人知识库助手网页端》用户使用手册.files/editdata.mso">
 <!--[if !mso]>
-<style>
-v\:* {behavior:url(#default#VML);}
-o\:* {behavior:url(#default#VML);}
-w\:* {behavior:url(#default#VML);}
-.shape {behavior:url(#default#VML);}
-</style>
+
 <![endif]--><!--[if gte mso 9]><xml>
  <o:DocumentProperties>
   <o:Author>Apache POI</o:Author>
@@ -35,7 +31,6 @@ w\:* {behavior:url(#default#VML);}
   <o:Version>16.00</o:Version>
  </o:DocumentProperties>
 </xml><![endif]-->
-<link rel=themeData href="08《个人知识库助手网页端》用户使用手册.files/themedata.thmx">
 <link rel=colorSchemeMapping
 href="08《个人知识库助手网页端》用户使用手册.files/colorschememapping.xml">
 <!--[if gte mso 9]><xml>
